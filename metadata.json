@@ -1,0 +1,8 @@
+
+{
+  "name": "VietFood AI Captioner",
+  "description": "An AI-powered application to generate detailed Vietnamese food descriptions and captions from images using Gemini AI.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
