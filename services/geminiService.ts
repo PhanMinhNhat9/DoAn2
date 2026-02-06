@@ -6,7 +6,7 @@ export const generateFoodCaption = async (
   base64Image: string,
   language: 'vi' | 'en' = 'vi'
 ): Promise<GeminiResponse> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
   
   const systemInstruction = `
     Bạn là một chuyên gia ẩm thực Việt Nam. 
