@@ -1,53 +1,40 @@
 
-import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
-import { GeminiResponse } from "../types";
+import { GoogleGenAI } from "@google/genai";
 
 export const generateFoodCaption = async (
   base64Image: string,
-  language: 'vi' | 'en' = 'vi'
-): Promise<GeminiResponse> => {
+  mimeType: string = 'image/jpeg'
+): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
   
   const systemInstruction = `
     Bạn là một chuyên gia ẩm thực Việt Nam. 
-    Nhiệm vụ của bạn là phân tích hình ảnh món ăn và cung cấp thông tin chi tiết.
-    Hãy trả về dữ liệu dưới dạng JSON với các trường: foodName (Tên món), category (Phân loại: Cơm, Phở, Bún, Tráng miệng, v.v.), description (Mô tả chi tiết và hấp dẫn), ingredients (Danh sách nguyên liệu chính).
-    Ngôn ngữ trả về phải là: ${language === 'vi' ? 'Tiếng Việt' : 'Tiếng Anh'}.
-    Nếu không phải là món ăn, hãy cố gắng nhận diện vật thể nhưng ghi chú là không phải thực phẩm.
+    Nhiệm vụ của bạn là phân tích hình ảnh món ăn và viết một tiêu đề (caption) hấp dẫn, mô tả ngắn gọn về món ăn, hương vị và cảm xúc khi thưởng thức.
+    Hãy trả về duy nhất chuỗi văn bản tiêu đề bằng Tiếng Việt.
   `;
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: {
-      parts: [
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-flash-latest',
+      contents: [
         {
-          inlineData: {
-            mimeType: 'image/jpeg',
-            data: base64Image.split(',')[1],
-          },
-        },
-        { text: "Phân tích món ăn trong ảnh này." }
-      ],
-    },
-    config: {
-      systemInstruction,
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          foodName: { type: Type.STRING },
-          category: { type: Type.STRING },
-          description: { type: Type.STRING },
-          ingredients: { 
-            type: Type.ARRAY,
-            items: { type: Type.STRING }
-          }
-        },
-        required: ["foodName", "category", "description", "ingredients"]
-      }
-    },
-  });
+          role: 'user',
+          parts: [
+            {
+              inlineData: {
+                mimeType: mimeType,
+                data: base64Image,
+              },
+            },
+            { text: systemInstruction + "\n\nHãy viết một bài đăng hấp dẫn cho món ăn này." }
+          ],
+        }
+      ]
+    });
 
-  const text = response.text || "{}";
-  return JSON.parse(text) as GeminiResponse;
+    return response.text || "Không thể tạo caption.";
+  } catch (error) {
+    console.error("Gemini Error:", error);
+    throw error;
+  }
 };

@@ -1,372 +1,422 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { User, FoodCaption, UserRole } from './types';
-import { authService } from './services/authService';
-import { storageService } from './services/storageService';
-import { generateFoodCaption } from './services/geminiService';
-import Layout from './components/Layout';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-const App: React.FC = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<'home' | 'history' | 'admin' | 'stats'>('home');
-  const [loading, setLoading] = useState(false);
-  const [history, setHistory] = useState<FoodCaption[]>([]);
-  const [currentCaption, setCurrentCaption] = useState<FoodCaption | null>(null);
-  const [lang, setLang] = useState<'vi' | 'en'>('vi');
-  
-  // Auth Form State
-  const [usernameInput, setUsernameInput] = useState('');
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+  TrendingUp,
+  CheckCircle,
+} from 'lucide-react';
 
-  useEffect(() => {
-    const currentUser = authService.getCurrentUser();
-    setUser(currentUser);
-    setHistory(storageService.getHistory());
-  }, []);
+import { Post, User } from './types';
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!usernameInput.trim()) return;
-    const loggedInUser = authService.login(usernameInput);
-    setUser(loggedInUser);
+// Components
+import Sidebar from './components/Sidebar';
+import Header from './components/Header';
+import PostDetailModal from './components/PostDetailModal';
+import EditProfileModal from './components/EditProfileModal';
+
+// Pages
+import HomePage from './pages/HomePage';
+import CreatePage from './pages/CreatePage';
+import ProfilePage from './pages/ProfilePage';
+import NotificationPage from './pages/NotificationPage';
+import StatsPage from './pages/StatsPage';
+import UserStatsPage from './pages/UserStatsPage';
+import LoginPage from './pages/LoginPage';
+import AdminDashboard from './pages/AdminDashboard';
+
+const API_BASE_URL = 'http://localhost/DoAn2/api';
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState('home');
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [trending, setTrending] = useState<any[]>([]);
+  const [stories, setStories] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>({});
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [toasts, setToasts] = useState<{id: number, msg: string}[]>([]);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [profileTab, setProfileTab] = useState('posts');
+
+  const addToast = (msg: string) => {
+    const id = Date.now();
+    setToasts(prev => [...prev, {id, msg}]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
   };
 
-  const handleLogout = () => {
-    authService.logout();
-    setUser(null);
-    setActiveTab('home');
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validation
-    if (!file.type.startsWith('image/')) {
-      alert('Vui lòng tải lên định dạng ảnh.');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Kích thước ảnh không được vượt quá 5MB.');
-      return;
-    }
-
+  // Lấy dữ liệu từ Backend
+  const fetchData = async (search = '', filterOverride = null) => {
     setLoading(true);
     try {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const base64 = event.target?.result as string;
-        const result = await generateFoodCaption(base64, lang);
-        
-        const newCaption: FoodCaption = {
-          id: Math.random().toString(36).substr(2, 9),
-          userId: user?.id || 'guest',
-          imageUrl: base64,
-          foodName: result.foodName,
-          category: result.category,
-          description: result.description,
-          ingredients: result.ingredients,
-          language: lang,
-          timestamp: Date.now()
-        };
+      const savedUser = localStorage.getItem('user');
+      const currentU = savedUser ? JSON.parse(savedUser) : null;
+      if (currentU) setCurrentUser(currentU);
 
-        setCurrentCaption(newCaption);
-        storageService.saveCaption(newCaption);
-        setHistory(storageService.getHistory());
-        setLoading(false);
-      };
-      reader.readAsDataURL(file);
+      const userIdParam = currentU ? `&userId=${currentU.id}` : '';
+      
+      let finalFilter = filterOverride;
+      if (!finalFilter) {
+        if (activeTab === 'explore') finalFilter = 'explore';
+        else if (activeTab === 'profile') {
+          finalFilter = profileTab === 'saved' ? 'bookmarks' : 'profile';
+        }
+      }
+
+      const filterParam = finalFilter ? `&filter=${finalFilter}` : '';
+      const targetUserParam = (finalFilter === 'profile' && currentU) ? `&targetUser=${currentU.handle}` : '';
+      const searchParam = search ? `&search=${search}` : '';
+
+      // Fetch Posts (with search/filter)
+      const postRes = await fetch(`${API_BASE_URL}/get_posts.php?_t=${Date.now()}${userIdParam}${filterParam}${targetUserParam}${searchParam}`);
+      const postData = await postRes.json();
+      if (Array.isArray(postData)) setPosts(postData);
+
+      // Fetch Trending
+      const trendRes = await fetch(`${API_BASE_URL}/get_trending.php`);
+      const trendData = await trendRes.json();
+      if (Array.isArray(trendData)) setTrending(trendData);
+
+      // Fetch Stories
+      const storyRes = await fetch(`${API_BASE_URL}/stories.php`);
+      const storyData = await storyRes.json();
+      if (Array.isArray(storyData)) setStories(storyData);
+
+      // Fetch Stats
+      const statRes = await fetch(`${API_BASE_URL}/get_stats.php`);
+      const statData = await statRes.json();
+      if (!statData.error) setStats(statData);
+
     } catch (error) {
-      console.error(error);
-      alert('Lỗi khi xử lý ảnh. Vui lòng thử lại.');
+      console.error("Lỗi lấy dữ liệu:", error);
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleRating = (id: string, rating: number) => {
-    storageService.updateCaption(id, { rating });
-    setHistory(storageService.getHistory());
-    if (currentCaption?.id === id) {
-      setCurrentCaption(prev => prev ? { ...prev, rating } : null);
+  useEffect(() => {
+    fetchData(searchQuery);
+  }, [activeTab, searchQuery, profileTab]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    setCurrentUser(null);
+    setActiveTab('home');
+    addToast("Đã đăng xuất thành công");
+  };
+
+  const handleDeletePost = async (id: string) => {
+    if (window.confirm('Bạn có chắc chắn muốn xóa bài viết này không?')) {
+      try {
+        await fetch(`${API_BASE_URL}/delete_post.php?id=${id}&userId=${currentUser?.id}`, { method: 'POST' });
+        setPosts(posts.filter(p => p.id !== id));
+        addToast("Đã xóa bài viết");
+      } catch (err) {
+        console.error('Lỗi xóa:', err);
+      }
     }
   };
 
-  const deleteFromHistory = (id: string) => {
-    storageService.deleteCaption(id);
-    setHistory(storageService.getHistory());
+  const handleLike = async (postId: string) => {
+    if (!currentUser) { setActiveTab('login'); return; }
+    try {
+      const res = await fetch(`${API_BASE_URL}/interactions.php?action=like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id, postId })
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        setPosts(prev => prev.map(p => p.id === postId ? {
+          ...p, 
+          isLiked: data.liked, 
+          likes: data.liked ? p.likes + 1 : Math.max(0, p.likes - 1)
+        } : p));
+        addToast(data.liked ? "Đã thêm vào yêu thích" : "Đã bỏ yêu thích");
+      }
+    } catch (err) { console.error(err); }
   };
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-slate-800">VietFood AI</h1>
-            <p className="text-slate-500 mt-2">Đăng nhập để bắt đầu nhận diện món ăn</p>
-          </div>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Tên đăng nhập</label>
-              <input 
-                type="text" 
-                value={usernameInput}
-                onChange={(e) => setUsernameInput(e.target.value)}
-                placeholder="Nhập tên của bạn (hoặc 'admin')"
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition outline-none"
-              />
-            </div>
-            <button 
-              type="submit"
-              className="w-full bg-orange-500 text-white py-3 rounded-lg font-semibold hover:bg-orange-600 transition"
-            >
-              Vào ứng dụng
-            </button>
-          </form>
-          <div className="mt-6 text-center text-xs text-slate-400">
-            Dùng "admin" để vào chế độ quản trị
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleBookmark = async (postId: string) => {
+    if (!currentUser) { setActiveTab('login'); return; }
+    try {
+      const res = await fetch(`${API_BASE_URL}/interactions.php?action=bookmark`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id, postId })
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        if (activeTab === 'profile' && profileTab === 'saved' && !data.bookmarked) {
+          setPosts(prev => prev.filter(p => p.id !== postId));
+        } else {
+          setPosts(prev => prev.map(p => p.id === postId ? { ...p, isBookmarked: data.bookmarked } : p));
+        }
+        addToast(data.bookmarked ? "Đã lưu bài viết" : "Đã bỏ lưu");
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  const handleComment = async (postId: string, content: string) => {
+    if (!currentUser) { setActiveTab('login'); return; }
+    try {
+      const res = await fetch(`${API_BASE_URL}/interactions.php?action=comment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id, postId, content })
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        addToast("Đã đăng bình luận");
+        fetchData(searchQuery);
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  const handleFollow = async (targetId: string) => {
+    if (!currentUser) { setActiveTab('login'); return; }
+    try {
+      const res = await fetch(`${API_BASE_URL}/profile.php?action=follow&userId=${currentUser.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetId })
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        addToast(data.followed ? "Đang theo dõi người dùng" : "Đã bỏ theo dõi");
+        setPosts(prev => prev.map(p => p.user.id === targetId ? {
+          ...p,
+          user: { ...p.user, isFollowing: data.followed, followers: data.followed ? p.user.followers + 1 : Math.max(0, p.user.followers - 1) }
+        } : p));
+        
+        if (selectedPost && selectedPost.user.id === targetId) {
+          setSelectedPost(prev => prev ? {
+            ...prev,
+            user: { ...prev.user, isFollowing: data.followed, followers: data.followed ? prev.user.followers + 1 : Math.max(0, prev.user.followers - 1) }
+          } : null);
+        }
+        
+        fetchData(searchQuery);
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  const handlePostStory = async (image: string) => {
+    if (!currentUser) { setActiveTab('login'); return; }
+    try {
+      const res = await fetch(`${API_BASE_URL}/stories.php?action=post`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id, image })
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        addToast("Đã chia sẻ tin!");
+        fetchData(searchQuery);
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  const handleShare = (post: Post) => {
+    navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`);
+    addToast("Đã sao chép liên kết!");
+  };
+
+  const handleEditProfile = async (data: any) => {
+    if (!currentUser) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/profile.php?action=update&userId=${currentUser.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const result = await res.json();
+      if (result.status === 'success') {
+        const updatedUser = { ...currentUser, ...data };
+        setCurrentUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        setIsEditProfileOpen(false);
+        addToast("Đã cập nhật hồ sơ!");
+        fetchData(searchQuery);
+      } else {
+        addToast(result.message || "Không thể cập nhật hồ sơ");
+      }
+    } catch (err) { 
+      console.error(err);
+      addToast("Lỗi kết nối khi cập nhật hồ sơ");
+    }
+  };
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'home':
+      case 'explore':
+        return <HomePage onPostClick={setSelectedPost} posts={posts} user={currentUser} trending={trending} stories={stories} onPostStory={handlePostStory} onLike={handleLike} onShare={handleShare} onBookmark={handleBookmark} onDelete={handleDeletePost} />;
+      case 'create':
+        return <CreatePage user={currentUser} onPostCreated={() => { setActiveTab('home'); fetchData(); addToast("Đã chia sẻ bài viết mới!"); }} />;
+      case 'profile':
+        return <ProfilePage 
+          posts={posts} 
+          user={currentUser} 
+          profileTab={profileTab}
+          loading={loading}
+          onTabChange={(tab) => {
+            if (tab !== profileTab) {
+              setPosts([]);
+              setProfileTab(tab);
+            }
+          }}
+          onEdit={() => setIsEditProfileOpen(true)} 
+          onPostClick={setSelectedPost} 
+        />;
+      case 'notifications':
+        return <NotificationPage user={currentUser} />;
+      case 'stats':
+        return <StatsPage stats={stats} trending={trending} />;
+      case 'analytics':
+        return currentUser ? <UserStatsPage user={currentUser} /> : <LoginPage onLogin={(user) => { setCurrentUser(user); setActiveTab('home'); }} />;
+      case 'login':
+        return <LoginPage onLogin={(user) => { setCurrentUser(user); setActiveTab('home'); addToast(`Chào mừng trở lại, ${user.name}!`); }} />;
+      case 'admin':
+        return currentUser?.role === 'ADMIN' ? 
+          <AdminDashboard posts={posts} onPostDelete={handleDeletePost} /> : 
+          <HomePage onPostClick={setSelectedPost} posts={posts} user={currentUser} trending={trending} stories={stories} onPostStory={handlePostStory} onLike={handleLike} onShare={handleShare} onBookmark={handleBookmark} onDelete={handleDeletePost} />;
+      default:
+        return <HomePage onPostClick={setSelectedPost} posts={posts} user={currentUser} trending={trending} stories={stories} onPostStory={handlePostStory} onLike={handleLike} onShare={handleShare} onBookmark={handleBookmark} onDelete={handleDeletePost} />;
+    }
+  };
 
   return (
-    <Layout user={user} onLogout={handleLogout} activeTab={activeTab} setActiveTab={setActiveTab}>
-      {activeTab === 'home' && (
-        <div className="space-y-8 animate-in fade-in duration-500">
-          <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-bold text-slate-800">Quét món ăn mới</h2>
-              <p className="text-slate-500">Tải ảnh món ăn Việt Nam lên để nhận mô tả chi tiết</p>
+    <div className="flex h-screen w-full overflow-hidden bg-[#f6f8f7] dark:bg-background-dark text-slate-900 transition-colors duration-300">
+      <Sidebar 
+        activeTab={activeTab} 
+        setActiveTab={(tab) => {
+          setPosts([]);
+          setActiveTab(tab);
+          if (tab === 'profile') setProfileTab('posts');
+        }} 
+        user={currentUser} 
+        onLogout={handleLogout}
+      />
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        <Header user={currentUser} onSearch={setSearchQuery} />
+        <AnimatePresence>
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.2 }}
+            className="flex-1 flex flex-col overflow-hidden"
+          >
+            {renderContent()}
+          </motion.div>
+        </AnimatePresence>
+      </main>
+
+      {['home', 'explore', 'notifications', 'stats', 'analytics', 'profile'].includes(activeTab) && (
+        <aside className="w-80 flex-shrink-0 border-l border-slate-200 dark:border-white/10 bg-white dark:bg-background-dark hidden xl:block p-6 overflow-y-auto scrollbar-hide">
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-slate-900 dark:text-white">Xu hướng Món ăn</h3>
+              <button className="text-xs font-medium text-primary hover:underline">Xem Tất Cả</button>
             </div>
-            <div className="flex bg-slate-200 p-1 rounded-lg self-start">
-              <button 
-                onClick={() => setLang('vi')}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${lang === 'vi' ? 'bg-white shadow-sm text-orange-600' : 'text-slate-600'}`}
-              >
-                Tiếng Việt
-              </button>
-              <button 
-                onClick={() => setLang('en')}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${lang === 'en' ? 'bg-white shadow-sm text-orange-600' : 'text-slate-600'}`}
-              >
-                English
-              </button>
-            </div>
-          </header>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Upload Area */}
-            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center min-h-[400px]">
-              {loading ? (
-                <div className="flex flex-col items-center gap-4">
-                  <div className="w-12 h-12 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin"></div>
-                  <p className="text-slate-600 font-medium">AI đang phân tích món ăn...</p>
-                </div>
-              ) : (
-                <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition border-2 border-dashed border-slate-200 rounded-xl p-8 group">
-                  <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center text-3xl group-hover:scale-110 transition mb-4">
-                    📸
+            <div className="space-y-4">
+              {trending.map(food => (
+                <div key={food.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer group">
+                  <div className="h-12 w-12 rounded-lg bg-cover bg-center" style={{ backgroundImage: `url(${food.image})` }}></div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-semibold truncate group-hover:text-primary transition-colors dark:text-white">{food.name}</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{food.posts} bài viết</p>
                   </div>
-                  <p className="text-lg font-semibold text-slate-700">Chọn hoặc Chụp ảnh</p>
-                  <p className="text-sm text-slate-400 mt-1">Định dạng JPG, PNG (Max 5MB)</p>
-                  <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                </label>
-              )}
-            </div>
-
-            {/* Result Area */}
-            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-              {currentCaption ? (
-                <div className="space-y-6 animate-in slide-in-from-right duration-500">
-                  <div className="relative group">
-                    <img 
-                      src={currentCaption.imageUrl} 
-                      alt="Food" 
-                      className="w-full h-48 object-cover rounded-xl shadow-md"
-                    />
-                    <div className="absolute top-2 right-2 px-3 py-1 bg-white/90 backdrop-blur rounded-full text-xs font-bold text-orange-600 uppercase tracking-wide">
-                      {currentCaption.category}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-3xl font-bold text-slate-900">{currentCaption.foodName}</h3>
-                    <p className="text-slate-600 mt-4 leading-relaxed italic border-l-4 border-orange-500 pl-4">
-                      "{currentCaption.description}"
-                    </p>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">Thành phần chính</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {currentCaption.ingredients.map((ing, i) => (
-                        <span key={i} className="px-3 py-1 bg-slate-100 rounded-full text-sm text-slate-700">
-                          {ing}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="pt-6 border-t border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-slate-500">Đánh giá độ chính xác:</span>
-                      <div className="flex gap-1">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <button 
-                            key={star}
-                            onClick={() => handleRating(currentCaption.id, star)}
-                            className={`text-xl transition ${currentCaption.rating && currentCaption.rating >= star ? 'text-yellow-400' : 'text-slate-300 hover:text-yellow-200'}`}
-                          >
-                            ★
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center text-slate-400 italic">
-                  <span className="text-4xl mb-4 opacity-20">🍽️</span>
-                  <p>Thông tin món ăn sẽ xuất hiện tại đây sau khi bạn tải ảnh lên.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'history' && (
-        <div className="animate-in fade-in duration-500">
-          <header className="mb-8">
-            <h2 className="text-2xl font-bold text-slate-800">Lịch sử của bạn</h2>
-            <p className="text-slate-500">Xem lại các món ăn bạn đã quét</p>
-          </header>
-
-          {history.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-slate-200">
-              <p className="text-slate-400">Chưa có lịch sử. Hãy thử quét món ăn đầu tiên!</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {history.map((item) => (
-                <div key={item.id} className="bg-white rounded-xl overflow-hidden shadow-sm border border-slate-100 hover:shadow-md transition group">
-                  <div className="relative h-48 overflow-hidden">
-                    <img src={item.imageUrl} alt={item.foodName} className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
-                    <button 
-                      onClick={() => deleteFromHistory(item.id)}
-                      className="absolute top-2 right-2 w-8 h-8 bg-white/90 backdrop-blur rounded-full text-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-bold text-slate-800 truncate flex-grow mr-2">{item.foodName}</h4>
-                      <span className="text-[10px] bg-orange-100 text-orange-600 font-bold px-2 py-0.5 rounded uppercase">
-                        {item.category}
-                      </span>
-                    </div>
-                    <p className="text-sm text-slate-500 line-clamp-2 mb-4">
-                      {item.description}
-                    </p>
-                    <div className="flex justify-between items-center mt-auto text-xs text-slate-400">
-                      <span>{new Date(item.timestamp).toLocaleDateString('vi-VN')}</span>
-                      <div className="text-yellow-400">
-                        {item.rating ? '★'.repeat(item.rating) : 'Chưa đánh giá'}
-                      </div>
-                    </div>
-                  </div>
+                  <TrendingUp className="w-4 h-4 text-primary" />
                 </div>
               ))}
             </div>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'stats' && (
-        <div className="animate-in fade-in duration-500">
-          <header className="mb-8">
-            <h2 className="text-2xl font-bold text-slate-800">Thống kê ứng dụng</h2>
-            <p className="text-slate-500">Dữ liệu tổng hợp từ các lần quét</p>
-          </header>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-              <p className="text-sm font-medium text-slate-400 uppercase tracking-wider">Tổng số ảnh đã quét</p>
-              <h4 className="text-4xl font-bold text-slate-800 mt-2">{history.length}</h4>
+          </div>
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-slate-900 dark:text-white">Thống kê Cộng đồng</h3>
             </div>
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-              <p className="text-sm font-medium text-slate-400 uppercase tracking-wider">Món được quét nhiều nhất</p>
-              <h4 className="text-2xl font-bold text-orange-600 mt-2 truncate">
-                {history.length > 0 ? (
-                   [...history].sort((a,b) => 
-                    history.filter(x => x.foodName === b.foodName).length - 
-                    history.filter(x => x.foodName === a.foodName).length
-                  )[0].foodName
-                ) : 'N/A'}
-              </h4>
-            </div>
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-              <p className="text-sm font-medium text-slate-400 uppercase tracking-wider">Đánh giá trung bình</p>
-              <h4 className="text-4xl font-bold text-yellow-500 mt-2">
-                {history.filter(h => h.rating).length > 0 ? (
-                  (history.reduce((acc, curr) => acc + (curr.rating || 0), 0) / history.filter(h => h.rating).length).toFixed(1)
-                ) : '0.0'}
-              </h4>
+            <div className="bg-slate-50 dark:bg-surface-dark/50 rounded-2xl p-4 border border-slate-200 dark:border-white/5">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 mb-1">Tổng số Ảnh</span>
+                  <span className="text-xl font-bold dark:text-white">{stats.totalPhotos || 0}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 mb-1">Thành viên</span>
+                  <span className="text-xl font-bold dark:text-white">{stats.activeContributors || 0}</span>
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-slate-200 dark:border-white/10">
+                <span className="text-xs text-slate-500 dark:text-slate-400 mb-2 block">Thẻ Xu hướng hàng đầu</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+                    <span className="text-sm font-medium dark:text-white">{trending[0]?.name || 'Đang cập nhật...'}</span>
+                  </div>
+                  <span className="text-xs font-bold text-primary">+{(trending[0]?.posts || 0) * 12}%</span>
+                </div>
+                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 mt-2">
+                  <div className="bg-primary h-1.5 rounded-full" style={{ width: '85%' }}></div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {activeTab === 'admin' && (
-        <div className="animate-in fade-in duration-500">
-          <header className="mb-8">
-            <h2 className="text-2xl font-bold text-slate-800">Bảng Quản Trị</h2>
-            <p className="text-slate-500">Quản lý người dùng và dữ liệu hệ thống</p>
-          </header>
-
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 border-b border-slate-100">
-                <tr>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Món Ăn</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Người Quét</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Ngày Giờ</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Đánh Giá</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Hành Động</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {history.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50 transition">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <img src={item.imageUrl} className="w-8 h-8 rounded object-cover" />
-                        <span className="font-medium text-slate-800">{item.foodName}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-slate-600">{item.userId}</td>
-                    <td className="px-6 py-4 text-slate-600">{new Date(item.timestamp).toLocaleString('vi-VN')}</td>
-                    <td className="px-6 py-4">
-                      <span className="text-yellow-500 font-bold">{item.rating || '-'}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <button 
-                        onClick={() => deleteFromHistory(item.id)}
-                        className="text-red-500 hover:text-red-700 text-sm font-medium"
-                      >
-                        Gỡ bỏ
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-500 dark:text-slate-400">
+            <a className="hover:underline" href="#">Giới thiệu</a>
+            <a className="hover:underline" href="#">Quyền riêng tư</a>
+            <a className="hover:underline" href="#">Điều khoản</a>
+            <a className="hover:underline" href="#">Nguyên tắc AI</a>
+            <span>© 2024 VietFood AI</span>
           </div>
-        </div>
+        </aside>
       )}
-    </Layout>
+
+      {selectedPost && (
+        <PostDetailModal 
+          post={selectedPost} 
+          user={currentUser}
+          onClose={() => setSelectedPost(null)} 
+          onLike={handleLike}
+          onBookmark={handleBookmark}
+          onShare={handleShare}
+          onComment={handleComment}
+          onFollow={handleFollow}
+          onDelete={handleDeletePost}
+        />
+      )}
+
+      {isEditProfileOpen && currentUser && (
+        <EditProfileModal 
+          user={currentUser} 
+          onClose={() => setIsEditProfileOpen(false)} 
+          onSave={handleEditProfile} 
+          />
+      )}
+
+      <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-3">
+        <AnimatePresence>
+          {toasts.map(toast => (
+            <motion.div 
+              key={toast.id}
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-slate-900 border border-white/10 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 backdrop-blur-xl"
+            >
+              <CheckCircle className="text-primary w-5 h-5" />
+              <span className="text-sm font-bold">{toast.msg}</span>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+    </div>
   );
-};
-
-export default App;
+}
