@@ -7,7 +7,10 @@ import {
   Bookmark as SavedIcon, 
   Trash2,
   MapPin as LocationOn,
-  Sparkles as AutoAwesome
+  Sparkles as AutoAwesome,
+  ChefHat,
+  Search,
+  ExternalLink
 } from 'lucide-react';
 import { Post, User } from '../types';
 
@@ -28,6 +31,13 @@ interface PostDetailModalProps {
 const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, user, onClose, onLike, onBookmark, onShare, onComment, onFollow, onDelete }) => {
   const [comment, setComment] = useState('');
   const [commentsList, setCommentsList] = useState<any[]>([]);
+  const [activeInfoTab, setActiveInfoTab] = useState<'info' | 'recipe'>('info');
+
+  const handleSearchPlaces = () => {
+    const foodName = post.caption.split(' ').slice(0, 3).join(' '); // Lấy 3 từ đầu làm keyword
+    const url = `https://www.google.com/maps/search/${encodeURIComponent(foodName + ' gần đây')}`;
+    window.open(url, '_blank');
+  };
 
   useEffect(() => {
     const fetchComments = async () => {
@@ -97,25 +107,71 @@ const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, user, onClose, 
 
           <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-hide">
             {/* Description */}
-            <div className="space-y-4">
-              <p className="text-slate-700 dark:text-gray-100 leading-relaxed font-bold text-lg">{post.caption}</p>
-              {post.aiAnalysis && (
-                <div className="bg-primary/5 border border-primary/10 rounded-3xl p-6 relative overflow-hidden group">
-                  <AutoAwesome className="absolute -right-4 -top-4 w-24 h-24 text-primary/5 transition-transform group-hover:scale-110 duration-700" />
-                  <p className="text-sm dark:text-text-secondary leading-relaxed relative z-10 italic">
-                    <span className="text-primary font-black mr-1 uppercase text-xs not-italic tracking-widest">Phân tích AI:</span> 
-                    {post.aiAnalysis}
-                  </p>
-                </div>
-              )}
-              <div className="flex flex-wrap gap-2">
-                {post.tags.map(tag => (
-                  <span key={tag} className="px-3 py-1.5 bg-slate-100 dark:bg-white/5 rounded-full text-xs font-black text-primary border border-transparent hover:border-primary/20 transition-all cursor-pointer">
-                    {tag}
-                  </span>
-                ))}
-              </div>
+            {/* Info Tabs */}
+            <div className="flex border-b dark:border-white/5">
+              <button 
+                onClick={() => setActiveInfoTab('info')}
+                className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-all ${activeInfoTab === 'info' ? 'text-primary border-b-2 border-primary' : 'text-slate-400'}`}
+              >
+                Mô tả
+              </button>
+              <button 
+                onClick={() => setActiveInfoTab('recipe')}
+                className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-all ${activeInfoTab === 'recipe' ? 'text-primary border-b-2 border-primary' : 'text-slate-400'}`}
+              >
+                Công thức
+              </button>
             </div>
+
+            {activeInfoTab === 'info' ? (
+              <div className="space-y-4 pt-2">
+                <p className="text-slate-700 dark:text-gray-100 leading-relaxed font-bold text-lg">{post.caption}</p>
+                {post.aiAnalysis && (
+                  <div className="bg-primary/5 border border-primary/10 rounded-3xl p-6 relative overflow-hidden group">
+                    <AutoAwesome className="absolute -right-4 -top-4 w-24 h-24 text-primary/5 transition-transform group-hover:scale-110 duration-700" />
+                    <p className="text-sm dark:text-text-secondary leading-relaxed relative z-10 italic">
+                      <span className="text-primary font-black mr-1 uppercase text-xs not-italic tracking-widest">Phân tích AI:</span> 
+                      {post.aiAnalysis}
+                    </p>
+                  </div>
+                )}
+                
+                {/* Location Search Suggestion */}
+                <button 
+                  onClick={handleSearchPlaces}
+                  className="w-full mt-2 flex items-center justify-between p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl hover:bg-emerald-500/20 transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <Search className="text-emerald-500 w-5 h-5" />
+                    <div className="text-left">
+                      <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">Tìm nơi bán gần bạn?</p>
+                      <p className="text-[10px] uppercase font-black text-emerald-500/60 tracking-wider">Xem trên Google Maps</p>
+                    </div>
+                  </div>
+                  <ExternalLink className="w-4 h-4 text-emerald-500 group-hover:translate-x-1 transition-transform" />
+                </button>
+
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {post.tags.map(tag => (
+                    <span key={tag} className="px-3 py-1.5 bg-slate-100 dark:bg-white/5 rounded-full text-xs font-black text-primary border border-transparent hover:border-primary/20 transition-all cursor-pointer">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4 pt-2">
+                <div className="bg-slate-50 dark:bg-white/5 rounded-3xl p-6 border border-slate-100 dark:border-white/10">
+                  <div className="flex items-center gap-3 mb-4">
+                    <ChefHat className="text-primary w-6 h-6" />
+                    <h4 className="text-sm font-bold dark:text-white uppercase tracking-widest">Hướng dẫn chế biến</h4>
+                  </div>
+                  <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+                    {post.recipe || "Công thức đang được cập nhật..."}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Comments List */}
             <div className="space-y-6 pt-4 border-t border-slate-100 dark:border-white/5">

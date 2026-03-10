@@ -9,7 +9,7 @@ import {
   Send
 } from 'lucide-react';
 import { User } from '../types';
-import { generateFoodCaption } from '../services/geminiService';
+import { generateFoodAnalysis } from '../services/geminiService';
 
 const API_BASE_URL = 'http://localhost/DoAn2/api';
 
@@ -22,6 +22,7 @@ const CreatePage: React.FC<CreatePageProps> = ({ user, onPostCreated }) => {
   const [preview, setPreview] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [caption, setCaption] = useState('');
+  const [recipe, setRecipe] = useState('');
   const [isPosting, setIsPosting] = useState(false);
   const [privacy, setPrivacy] = useState<'public' | 'private'>('public');
   const [tags, setTags] = useState<string[]>(['#PhoBo', '#VietnameseFood']);
@@ -41,11 +42,13 @@ const CreatePage: React.FC<CreatePageProps> = ({ user, onPostCreated }) => {
     try {
       const base64Data = preview.split(',')[1];
       const mimeType = preview.split(';')[0].split(':')[1];
-      const result = await generateFoodCaption(base64Data, mimeType);
-      setCaption(result || "Không thể tạo mô tả.");
+      const result = await generateFoodAnalysis(base64Data, mimeType);
+      setCaption(result.caption);
+      setRecipe(result.recipe);
     } catch (error) {
       console.error(error);
       setCaption("Lỗi khi phân tích hình ảnh.");
+      setRecipe("Không thể tạo công thức.");
     } finally {
       setAnalyzing(false);
     }
@@ -126,9 +129,23 @@ const CreatePage: React.FC<CreatePageProps> = ({ user, onPostCreated }) => {
             <textarea 
               className="flex-1 w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-surface-border rounded-lg p-4 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-text-muted focus:ring-1 focus:ring-primary focus:border-primary resize-none transition-all text-sm leading-relaxed" 
               placeholder="Mô tả do AI tạo sẽ hiện ở đây..." 
-              rows={6}
+              rows={3}
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
+            ></textarea>
+
+            <div className="flex justify-between items-center mt-2">
+              <label className="text-slate-900 dark:text-white text-sm font-semibold flex items-center gap-2">
+                <AutoAwesome className="text-primary w-5 h-5" />
+                Công thức nấu ăn (AI đề xuất)
+              </label>
+            </div>
+            <textarea 
+              className="flex-1 w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-surface-border rounded-lg p-4 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-text-muted focus:ring-1 focus:ring-primary focus:border-primary resize-none transition-all text-sm leading-relaxed" 
+              placeholder="Công thức do AI tạo sẽ hiện ở đây..." 
+              rows={8}
+              value={recipe}
+              onChange={(e) => setRecipe(e.target.value)}
             ></textarea>
             <div className="flex flex-wrap gap-2">
               {tags.map(tag => (
@@ -158,6 +175,7 @@ const CreatePage: React.FC<CreatePageProps> = ({ user, onPostCreated }) => {
                     userId: user?.id, 
                     imageUrl: preview,
                     caption: caption,
+                    recipe: recipe,
                     aiAnalysis: "Đã phân tích bởi VietFood AI",
                     tags: tags,
                     privacy: privacy

@@ -33,6 +33,7 @@ export interface Post {
   image: string;
   caption: string;
   aiAnalysis?: string;
+  recipe?: string;
   likes: number;
   comments: number;
   time: string;
