@@ -16,5 +16,11 @@
     "username": "minhnhat",
     "role": "user",
     "passwordHash": "$2b$10$X3W56aLIqSx3OmQoiNzyNePsvNKHOYpTeRkzcksfz3pvK4MbCzhoi"
+  },
+  {
+    "id": "tg6gj7q93",
+    "username": "baongoc",
+    "role": "user",
+    "passwordHash": "$2b$10$hlNptg8YZPpSaRjaEZ20C.4/ve1QXP4rC7xHdHU0USkuVlNA4b3S2"
   }
 ]

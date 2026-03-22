@@ -45,7 +45,7 @@
     "imageUrl": "/uploads/1773727186604-ht3fws.jpg",
     "language": "vi",
     "username": "minhnhat",
-    "likes": 3,
+    "likes": 15,
     "isPublic": true
   },
   {
@@ -77,7 +77,7 @@
     "imageUrl": "/uploads/1773728330615-r9j0hq.jpg",
     "language": "vi",
     "username": "minhnhat",
-    "likes": 3,
+    "likes": 12,
     "isPublic": true,
     "comments": [
       {
@@ -137,7 +137,38 @@
     "imageUrl": "/uploads/1774162516719-gy26dd.jpg",
     "language": "vi",
     "username": "minhnhat",
-    "likes": 0,
+    "likes": 39,
+    "comments": [],
+    "isPublic": true
+  },
+  {
+    "dishName": "Canh Măng Khô",
+    "category": "Khác",
+    "description": "Món canh truyền thống đậm đà hương vị, với những sợi măng khô dai giòn sần sật, thấm đượm nước dùng ngọt thanh từ xương hầm hoặc thịt. Đây là món ăn không thể thiếu trong mâm cỗ Tết và bữa cơm gia đình Việt, mang lại cảm giác ấm cúng và no bụng.",
+    "history": "Măng khô là một nguyên liệu lâu đời trong ẩm thực Việt Nam, ra đời từ nhu cầu bảo quản măng tươi để sử dụng quanh năm, đặc biệt vào mùa đông hoặc những dịp lễ Tết khi măng tươi không sẵn có. Canh măng khô đã trở thành món ăn đặc trưng của Tết Nguyên Đán ở nhiều vùng miền, tượng trưng cho sự sum vầy và no ấm.",
+    "ingredients": [
+      "Măng khô",
+      "Xương heo/Móng giò heo/Thịt vịt",
+      "Hành khô",
+      "Nước mắm",
+      "Hạt nêm",
+      "Tiêu",
+      "Hành lá",
+      "Gia vị khác"
+    ],
+    "nutrition": {
+      "calories": 380,
+      "protein": 25,
+      "carbs": 20,
+      "fat": 28
+    },
+    "id": "8zk1yi5rb",
+    "userId": "tg6gj7q93",
+    "timestamp": 1774168350211,
+    "imageUrl": "/uploads/1774168340451-kkxos1.jpg",
+    "language": "vi",
+    "username": "baongoc",
+    "likes": 29,
     "comments": [],
     "isPublic": true
   }

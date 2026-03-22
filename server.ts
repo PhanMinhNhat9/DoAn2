@@ -6,13 +6,57 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
-import { User, UserRole, DishAnalysis, CommunityPost } from "./types";
+import { GoogleGenAI, Type } from "@google/genai";
+import rateLimit from "express-rate-limit";
+import { z } from "zod";
+import { User, UserRole, DishAnalysis, CommunityPost, Language } from "./types";
 import { readDb, writeDb } from "./db/database";
+
+// Load .env.local for local dev (Node 20.12+ built-in, no extra dependency needed)
+// On production (Render etc.), env vars are injected by the platform directly.
+try {
+  (process as any).loadEnvFile('.env.local');
+} catch {
+  // file not found or already loaded — safe to ignore
+}
+
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const JWT_SECRET = process.env.JWT_SECRET || "vietfood-super-secret-2026";
 const UPLOADS_DIR = path.join(__dirname, "uploads");
 const PAGE_SIZE = 10;
+
+// --- Rate limiter: max 20 AI calls per 15 min per IP ---
+const aiRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Quá nhiều yêu cầu. Vui lòng thử lại sau 15 phút." },
+});
+
+// --- Zod schema: validates history POST body ---
+const DishAnalysisSchema = z.object({
+  id: z.string().min(1),
+  userId: z.string().min(1),
+  timestamp: z.number().int().positive(),
+  imageUrl: z.string().min(1),
+  dishName: z.string().min(1).max(200),
+  category: z.string().min(1).max(100),
+  description: z.string().min(1),
+  history: z.string(),
+  ingredients: z.array(z.string()).min(1),
+  nutrition: z.object({
+    calories: z.number().nonnegative(),
+    protein: z.number().nonnegative(),
+    carbs: z.number().nonnegative(),
+    fat: z.number().nonnegative(),
+  }).optional(),
+  language: z.enum(['vi', 'en']),
+  isPublic: z.boolean().optional(),
+  rating: z.number().min(0).max(5).optional(),
+  userNote: z.string().max(500).optional(),
+});
 
 // --- Multer setup: save images to disk ---
 const storage = multer.diskStorage({
@@ -195,7 +239,21 @@ async function startServer() {
   });
 
   app.post("/api/history", authMiddleware, (req: any, res: any) => {
-    const dish = req.body as DishAnalysis;
+    // Zod validation: reject malformed or malicious payloads
+    const parseResult = DishAnalysisSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        error: "Invalid dish data",
+        details: parseResult.error.flatten().fieldErrors
+      });
+    }
+    const dish = parseResult.data as DishAnalysis;
+
+    // Security: enforce that userId matches authenticated user
+    if (dish.userId !== req.user.id) {
+      return res.status(403).json({ error: "userId mismatch" });
+    }
+
     const histories = readDb<DishAnalysis[]>("history.json");
     histories.push(dish);
     writeDb("history.json", histories);
@@ -262,7 +320,8 @@ async function startServer() {
     res.json(post);
   });
 
-  app.post("/api/community/like/:id", (req: any, res: any) => {
+  // authMiddleware added to prevent spam likes
+  app.post("/api/community/like/:id", authMiddleware, (req: any, res: any) => {
     const { id } = req.params;
     const communityPosts = readDb<CommunityPost[]>("community.json");
     const post = communityPosts.find((p) => p.id === id);
@@ -304,6 +363,137 @@ async function startServer() {
       res.json(communityPosts[postIndex]);
     } else {
       res.status(404).json({ error: "Post not found" });
+    }
+  });
+
+  // ============================================================
+  // AI ROUTES (Phase 1 — Gemini calls moved to backend)
+  // ============================================================
+
+  app.post("/api/analyze", authMiddleware, aiRateLimit, async (req: any, res: any) => {
+    const { base64Image, language } = req.body as { base64Image: string; language: Language };
+
+    if (!base64Image) {
+      return res.status(400).json({ error: "base64Image is required" });
+    }
+    if (!language || !Object.values(Language).includes(language)) {
+      return res.status(400).json({ error: "Invalid language" });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: "API key not configured on server" });
+    }
+
+    try {
+      const ai = new GoogleGenAI({ apiKey });
+
+      const systemPrompt = `You are a world-class Vietnamese culinary expert. 
+  Analyze the image and provide a detailed description of the Vietnamese dish.
+  Respond in ${language === Language.VIETNAMESE ? "Vietnamese" : "English"}.
+  Format your response as valid JSON with the following structure:
+  {
+    "dishName": "string",
+    "category": "string (one of: Bún/Phở, Cơm, Bánh, Ăn vặt, Lẩu, Hải sản, Khác)",
+    "description": "short appetizing description",
+    "history": "brief historical context or origin",
+    "ingredients": ["list", "of", "key", "ingredients"],
+    "nutrition": {
+      "calories": 0,
+      "protein": 0,
+      "carbs": 0,
+      "fat": 0
+    }
+  }`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: {
+          parts: [
+            { inlineData: { data: base64Image, mimeType: "image/jpeg" } },
+            { text: "Identify this Vietnamese dish and provide details in JSON format as specified." },
+          ],
+        },
+        config: {
+          systemInstruction: systemPrompt,
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              dishName: { type: Type.STRING },
+              category: { type: Type.STRING },
+              description: { type: Type.STRING },
+              history: { type: Type.STRING },
+              ingredients: { type: Type.ARRAY, items: { type: Type.STRING } },
+              nutrition: {
+                type: Type.OBJECT,
+                properties: {
+                  calories: { type: Type.NUMBER },
+                  protein: { type: Type.NUMBER },
+                  carbs: { type: Type.NUMBER },
+                  fat: { type: Type.NUMBER },
+                },
+                required: ["calories", "protein", "carbs", "fat"],
+              },
+            },
+            required: ["dishName", "category", "description", "history", "ingredients", "nutrition"],
+          },
+        },
+      });
+
+      const text = response.text;
+      const result = JSON.parse(text || "{}");
+      res.json(result);
+    } catch (err: any) {
+      console.error("[/api/analyze] Gemini error:", err?.message || err);
+      res.status(502).json({ error: "AI analysis failed. Please try again." });
+    }
+  });
+
+  app.post("/api/nearby", authMiddleware, async (req: any, res: any) => {
+    const { dishName, latitude, longitude } = req.body as {
+      dishName: string;
+      latitude: number;
+      longitude: number;
+    };
+
+    if (!dishName || latitude == null || longitude == null) {
+      return res.status(400).json({ error: "dishName, latitude, and longitude are required" });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: "API key not configured on server" });
+    }
+
+    try {
+      const ai = new GoogleGenAI({ apiKey });
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: `Where can I eat the best ${dishName} near my current location?`,
+        config: {
+          tools: [{ googleMaps: {} }],
+          toolConfig: {
+            retrievalConfig: {
+              latLng: { latitude, longitude },
+            },
+          },
+        },
+      });
+
+      const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+      const links = groundingChunks
+        ?.map((chunk: any) => ({
+          title: chunk.maps?.title || "View on Google Maps",
+          uri: chunk.maps?.uri,
+        }))
+        .filter((l: any) => l.uri) || [];
+
+      res.json({ text: response.text, links });
+    } catch (err: any) {
+      console.error("[/api/nearby] Gemini error:", err?.message || err);
+      res.status(502).json({ error: "Restaurant search failed. Please try again." });
     }
   });
 
