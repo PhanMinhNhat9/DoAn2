@@ -111,5 +111,34 @@
         "timestamp": 1773734119414
       }
     ]
+  },
+  {
+    "dishName": "Cánh gà chiên nước mắm",
+    "category": "Khác",
+    "description": "Món cánh gà được chiên vàng giòn rụm, sau đó áo một lớp xốt nước mắm tỏi ớt đậm đà với sự cân bằng hoàn hảo giữa vị mặn, ngọt và cay.",
+    "history": "Đây là một món ăn phổ biến trong ẩm thực gia đình và các quán ăn tại Việt Nam, phản ánh sự sáng tạo khi kết hợp nguyên liệu hiện đại với nước mắm truyền thống.",
+    "ingredients": [
+      "Cánh gà",
+      "Nước mắm",
+      "Đường",
+      "Tỏi",
+      "Ớt",
+      "Dầu ăn"
+    ],
+    "nutrition": {
+      "calories": 350,
+      "protein": 18,
+      "carbs": 10,
+      "fat": 26
+    },
+    "id": "l6wxafu90",
+    "userId": "f9bdjefa3",
+    "timestamp": 1774162526034,
+    "imageUrl": "/uploads/1774162516719-gy26dd.jpg",
+    "language": "vi",
+    "username": "minhnhat",
+    "likes": 0,
+    "comments": [],
+    "isPublic": true
   }
 ]
