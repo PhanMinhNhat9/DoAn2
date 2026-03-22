@@ -1,0 +1,77 @@
+[
+  {
+    "dishName": "Mì cay",
+    "category": "Khác",
+    "description": "Món mì nước mang phong cách Hàn Quốc với nước dùng chua cay đậm đà, thường được phục vụ trong thố đá để giữ nhiệt. Món ăn bao gồm mì gói, xúc xích, cá viên, bò viên, hải sản và các loại rau như bắp cải tím, nấm kim châm.",
+    "history": "Mì cay 7 cấp độ bắt đầu trở thành trào lưu ẩm thực rầm rộ tại Việt Nam từ khoảng năm 2016. Món ăn này được lấy cảm hứng từ mì Jjamppong của Hàn Quốc nhưng đã được biến tấu về nguyên liệu và hương vị để phù hợp với sở thích của giới trẻ Việt Nam.",
+    "ingredients": [
+      "Mì gói",
+      "Xúc xích",
+      "Cá viên",
+      "Mực",
+      "Tôm",
+      "Bắp cải tím",
+      "Nấm kim châm",
+      "Kim chi",
+      "Ớt bột"
+    ],
+    "id": "kvqsv5srm",
+    "userId": "admin-id",
+    "timestamp": 1773727024399,
+    "imageUrl": "/uploads/1773726986418-36qblp.jpg",
+    "language": "vi",
+    "isPublic": true
+  },
+  {
+    "dishName": "Bánh mì thịt nướng",
+    "category": "Bánh",
+    "description": "Bánh mì thịt nướng là món ăn đường phố tiêu biểu của Việt Nam với lớp vỏ bánh giòn rụm, nhân thịt heo nướng thơm nức mũi kết hợp cùng dưa chua, rau ngò và nước sốt đậm đà.",
+    "history": "Bánh mì có nguồn gốc từ bánh baguette của Pháp du nhập vào Việt Nam từ thế kỷ 19, sau đó được người Việt sáng tạo thêm các loại nhân mang hương vị bản địa đặc trưng.",
+    "ingredients": [
+      "Bánh mì",
+      "Thịt heo nướng",
+      "Dưa leo",
+      "Đồ chua (cà rốt, củ cải)",
+      "Ngò rí",
+      "Ớt tươi",
+      "Hành lá",
+      "Nước sốt"
+    ],
+    "id": "1jcvpmpmd",
+    "userId": "f9bdjefa3",
+    "timestamp": 1773727194817,
+    "imageUrl": "/uploads/1773727186604-ht3fws.jpg",
+    "language": "vi",
+    "isPublic": true
+  },
+  {
+    "dishName": "Bánh Xèo",
+    "category": "Bánh",
+    "description": "Món bánh truyền thống Việt Nam với lớp vỏ mỏng vàng giòn từ bột gạo và nghệ, nhân bên trong gồm tôm, thịt và giá đỗ, ăn kèm cùng các loại rau sống và nước chấm tỏi ớt chua ngọt.",
+    "history": "Bánh xèo xuất hiện từ lâu đời, phổ biến ở cả miền Trung và miền Tây. Tên gọi xuất phát từ tiếng 'xèo' khi đổ bột vào chảo nóng. Bánh xèo miền Trung thường nhỏ gọn trong khi bánh xèo miền Tây to và mỏng hơn.",
+    "ingredients": [
+      "Bột gạo",
+      "Bột nghệ",
+      "Nước cốt dừa",
+      "Tôm",
+      "Thịt ba chỉ",
+      "Giá đỗ",
+      "Hành lá",
+      "Xà lách",
+      "Rau thơm",
+      "Nước mắm"
+    ],
+    "nutrition": {
+      "calories": 350,
+      "protein": 15,
+      "carbs": 40,
+      "fat": 15
+    },
+    "id": "78r0pzpp5",
+    "userId": "f9bdjefa3",
+    "timestamp": 1773728340740,
+    "imageUrl": "/uploads/1773728330615-r9j0hq.jpg",
+    "language": "vi",
+    "isPublic": true
+  }
+]

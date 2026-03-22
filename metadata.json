@@ -1,0 +1,8 @@
+{
+  "name": "VietFood",
+  "description": "An AI-powered application that recognizes Vietnamese dishes from images, provides detailed descriptions in multiple languages, finds nearby restaurants, and features a community feed for sharing culinary discoveries.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
