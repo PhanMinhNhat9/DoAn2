@@ -9,11 +9,12 @@ interface ScanTabProps {
   authHeaders: (u: User) => HeadersInit;
   uploadImage: (file: File, u: User) => Promise<{ imageUrl: string; base64: string }>;
   fetchHistory: (u: User, page: number, q: string) => void;
+  currentResult: DishAnalysis | null;
+  setCurrentResult: (result: DishAnalysis | null) => void;
 }
 
-export const ScanTab: React.FC<ScanTabProps> = ({ user, activeTab, handleLogout, authHeaders, uploadImage, fetchHistory }) => {
+export const ScanTab: React.FC<ScanTabProps> = ({ user, activeTab, handleLogout, authHeaders, uploadImage, fetchHistory, currentResult, setCurrentResult }) => {
   const [isScanning, setIsScanning] = useState(false);
-  const [currentResult, setCurrentResult] = useState<DishAnalysis | null>(null);
   const [nearbyPlaces, setNearbyPlaces] = useState<{ text: string, links: any[] } | null>(null);
   const [isSearchingPlaces, setIsSearchingPlaces] = useState(false);
   const [language, setLanguage] = useState<Language>(Language.VIETNAMESE);
@@ -113,9 +114,10 @@ export const ScanTab: React.FC<ScanTabProps> = ({ user, activeTab, handleLogout,
 
   const shareToCommunity = async (dishId: string) => {
     try {
-      const res = await fetch(`/api/community/share/${dishId}`, {
+      const res = await fetch(`/api/community/share`, {
         method: 'POST',
-        headers: authHeaders(user)
+        headers: authHeaders(user),
+        body: JSON.stringify({ dishId, username: user.username })
       });
       if (res.ok) {
         alert('Đã chia sẻ công khai lên cộng đồng!');

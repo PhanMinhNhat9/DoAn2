@@ -273,6 +273,15 @@ async function startServer() {
       }
       histories.splice(index, 1);
       writeDb("history.json", histories);
+
+      // Delete from community context if it was shared
+      let communityPosts = readDb<CommunityPost[]>("community.json");
+      const communityLength = communityPosts.length;
+      communityPosts = communityPosts.filter(p => p.id !== id);
+      if (communityPosts.length < communityLength) {
+        writeDb("community.json", communityPosts);
+      }
+
       res.json({ success: true });
     } else {
       res.status(404).json({ error: "Not found" });

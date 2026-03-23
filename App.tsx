@@ -22,6 +22,7 @@ const App: React.FC = () => {
   const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([]);
   const [communityPage, setCommunityPage] = useState(1);
   const [communityTotalPages, setCommunityTotalPages] = useState(1);
+  const [currentResult, setCurrentResult] = useState<DishAnalysis | null>(null);
 
   // Auth state
   const [isRegistering, setIsRegistering] = useState(false);
@@ -287,6 +288,8 @@ const App: React.FC = () => {
           authHeaders={authHeaders}
           uploadImage={uploadImage}
           fetchHistory={fetchHistory}
+          currentResult={currentResult}
+          setCurrentResult={setCurrentResult}
         />
 
         {activeTab === 'history' && (
@@ -301,6 +304,7 @@ const App: React.FC = () => {
             fetchHistory={fetchHistory}
             setActiveTab={setActiveTab}
             deleteHistoryItem={deleteHistoryItem}
+            setCurrentResult={setCurrentResult}
           />
         )}
 
@@ -317,7 +321,7 @@ const App: React.FC = () => {
             fetchCommunity={fetchCommunity}
             likePost={likePost}
             handleCommentSubmit={handleCommentSubmit}
-            setCurrentResult={() => {}} // Remove implementation if unused or find a way to handle it elsewhere
+            setCurrentResult={setCurrentResult}
             setActiveTab={setActiveTab}
           />
         )}

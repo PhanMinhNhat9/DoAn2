@@ -101,31 +101,53 @@
     "isPublic": true
   },
   {
-    "dishName": "Canh Măng Khô",
-    "category": "Khác",
-    "description": "Món canh truyền thống đậm đà hương vị, với những sợi măng khô dai giòn sần sật, thấm đượm nước dùng ngọt thanh từ xương hầm hoặc thịt. Đây là món ăn không thể thiếu trong mâm cỗ Tết và bữa cơm gia đình Việt, mang lại cảm giác ấm cúng và no bụng.",
-    "history": "Măng khô là một nguyên liệu lâu đời trong ẩm thực Việt Nam, ra đời từ nhu cầu bảo quản măng tươi để sử dụng quanh năm, đặc biệt vào mùa đông hoặc những dịp lễ Tết khi măng tươi không sẵn có. Canh măng khô đã trở thành món ăn đặc trưng của Tết Nguyên Đán ở nhiều vùng miền, tượng trưng cho sự sum vầy và no ấm.",
+    "id": "yy5bcrc5u",
+    "userId": "f9bdjefa3",
+    "timestamp": 1774172427392,
+    "imageUrl": "/uploads/1774172416340-9c1zgk.jpg",
+    "dishName": "Cơm Nắm Tam Giác Nhân Cá Hồi Cay",
+    "category": "Ăn vặt",
+    "description": "Món cơm nắm tam giác tiện lợi, hấp dẫn với lớp rong biển giòn dai bên ngoài bao bọc lấy phần cơm dẻo thơm, bên trong là nhân cá hồi cay đậm đà, béo ngậy. Một lựa chọn hoàn hảo cho bữa ăn nhẹ nhanh gọn và đủ chất.",
+    "history": "Cơm nắm rong biển là một món ăn vặt du nhập và phổ biến tại Việt Nam, đặc biệt là trong giới trẻ và tại các cửa hàng tiện lợi. Mặc dù có nguồn gốc từ văn hóa ẩm thực Nhật Bản (onigiri), món ăn này đã được biến tấu để phù hợp hơn với khẩu vị người Việt, trở thành một phần của ẩm thực đường phố và hiện đại, mang đến sự tiện lợi và hương vị mới lạ.",
     "ingredients": [
-      "Măng khô",
-      "Xương heo/Móng giò heo/Thịt vịt",
-      "Hành khô",
-      "Nước mắm",
-      "Hạt nêm",
-      "Tiêu",
-      "Hành lá",
-      "Gia vị khác"
+      "Cơm trắng dẻo",
+      "Rong biển (Nori)",
+      "Cá hồi xé nhỏ",
+      "Sốt mayonnaise",
+      "Tương ớt hoặc gia vị cay",
+      "Gia vị (muối, đường, dấm gạo)"
     ],
     "nutrition": {
-      "calories": 380,
-      "protein": 25,
-      "carbs": 20,
-      "fat": 28
+      "calories": 300,
+      "protein": 12,
+      "carbs": 45,
+      "fat": 10
     },
-    "id": "8zk1yi5rb",
+    "language": "vi"
+  },
+  {
+    "id": "tkkb8uwkb",
     "userId": "tg6gj7q93",
-    "timestamp": 1774168350211,
-    "imageUrl": "/uploads/1774168340451-kkxos1.jpg",
-    "language": "vi",
-    "isPublic": true
+    "timestamp": 1774173205135,
+    "imageUrl": "/uploads/1774173194517-i5uppp.jpg",
+    "dishName": "Sữa Đặc Ông Thọ",
+    "category": "Khác",
+    "description": "Sữa Đặc Ông Thọ là một sản phẩm sữa đặc có đường mang tính biểu tượng, không chỉ là nguyên liệu mà còn là hương vị ký ức của nhiều thế hệ người Việt. Với vị ngọt béo đậm đà, mịn màng, sữa đặc Ông Thọ là linh hồn tạo nên sự đặc trưng cho vô vàn món đồ uống (như cà phê sữa đá), món tráng miệng (như chè, sinh tố) và thậm chí là các món ăn mặn trong ẩm thực Việt Nam, mang lại sự tiện lợi và hương vị khó quên.",
+    "history": "Thương hiệu Ông Thọ, thuộc Vinamilk, đã gắn bó sâu sắc với đời sống người Việt Nam từ năm 1976, tiếp nối truyền thống sử dụng sữa đặc trong ẩm thực. Sản phẩm này nhanh chóng trở thành một biểu tượng của sự tiện lợi và hương vị quen thuộc, có mặt trong hầu hết các gian bếp gia đình Việt, các quán cà phê và quán chè truyền thống, khẳng định vị thế không thể thay thế trong văn hóa ẩm thực.",
+    "ingredients": [
+      "Sữa bò",
+      "Đường tinh luyện",
+      "Chất béo sữa",
+      "Dầu thực vật",
+      "Vitamin A",
+      "Vitamin D3"
+    ],
+    "nutrition": {
+      "calories": 320,
+      "protein": 8,
+      "carbs": 55,
+      "fat": 8
+    },
+    "language": "vi"
   }
 ]

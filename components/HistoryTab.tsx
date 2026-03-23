@@ -13,6 +13,7 @@ interface HistoryTabProps {
   fetchHistory: (user: User, page: number, query: string) => void;
   setActiveTab: (tab: string) => void;
   deleteHistoryItem: (id: string) => void;
+  setCurrentResult: (result: DishAnalysis | null) => void;
 }
 
 export const HistoryTab: React.FC<HistoryTabProps> = ({
@@ -25,7 +26,8 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
   setSearchQuery,
   fetchHistory,
   setActiveTab,
-  deleteHistoryItem
+  deleteHistoryItem,
+  setCurrentResult
 }) => {
   return (
     <div className="space-y-6">
@@ -87,7 +89,10 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                   </div>
                   <div className="flex items-center justify-between">
                     <button 
-                      onClick={() => setActiveTab('scan')}
+                      onClick={() => {
+                        setCurrentResult(item);
+                        setActiveTab('scan');
+                      }}
                       className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1"
                     >
                       Xem chi tiết <ChevronRight size={14} />
